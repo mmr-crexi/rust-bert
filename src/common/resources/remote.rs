@@ -3,7 +3,7 @@ use crate::common::error::RustBertError;
 use cached_path::{Cache, Options, ProgressBar};
 use dirs::cache_dir;
 use lazy_static::lazy_static;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// # Remote resource that will be downloaded and cached locally on demand
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -89,9 +89,39 @@ impl ResourceProvider for RemoteResource {
     /// let config_path = config_resource.get_local_path();
     /// ```
     fn get_local_path(&self) -> Result<PathBuf, RustBertError> {
-        let cached_path = CACHE
-            .cached_path_with_options(&self.url, &Options::default().subdir(&self.cache_subdir))?;
-        Ok(cached_path)
+        // Honor an offline mode to prevent any network access at runtime/tests.
+        // Set RUSTBERT_OFFLINE=1 (or "true") to enable.
+        let offline = std::env::var("RUSTBERT_OFFLINE")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
+
+        if offline {
+            // Compute the expected cache path and return it if present, otherwise error.
+            // This mirrors the cached-path subdir layout: <cache_root>/<cache_subdir>/<filename>
+            let mut cache_root = _get_cache_directory();
+            cache_root.push(&self.cache_subdir);
+            let filename = self
+                .url
+                .rsplit('/')
+                .next()
+                .ok_or_else(|| RustBertError::FileReadError("Invalid URL for resource".into()))?;
+            cache_root.push(filename);
+
+            if Path::new(&cache_root).exists() {
+                Ok(cache_root)
+            } else {
+                Err(RustBertError::FileReadError(format!(
+                    "Offline mode enabled and resource not found in cache: {:?}",
+                    cache_root
+                )))
+            }
+        } else {
+            let cached_path = CACHE.cached_path_with_options(
+                &self.url,
+                &Options::default().subdir(&self.cache_subdir),
+            )?;
+            Ok(cached_path)
+        }
     }
 
     /// Gets a wrapper around the local path for a remote resource.
