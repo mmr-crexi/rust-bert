@@ -185,7 +185,7 @@ impl TokenTrait for Token {
 }
 
 impl ConsolidatableTokens<Token> for Vec<Token> {
-    fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<Token> {
+    fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<'_, Token> {
         ConsolidatedTokenIterator::new(self)
     }
 }

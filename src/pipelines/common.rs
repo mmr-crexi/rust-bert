@@ -96,7 +96,7 @@ impl ResourceProvider for ModelResource {
             ModelResource::ONNX(_) => Err(RustBertError::UnsupportedError),
         }
     }
-    fn get_resource(&self) -> Result<Resource, RustBertError> {
+    fn get_resource(&self) -> Result<Resource<'_>, RustBertError> {
         match self {
             ModelResource::Torch(ref resource) => resource.get_resource(),
             #[cfg(feature = "onnx")]

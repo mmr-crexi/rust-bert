@@ -92,10 +92,8 @@ impl ResourceProvider for RemoteResource {
         // Always resolve via cached-path. If the resource is already cached (as in our image build warmup),
         // this returns the local path without network access. If it's missing and offline is enforced by env,
         // the downstream download will fail and bubble an error.
-        let cached_path = CACHE.cached_path_with_options(
-            &self.url,
-            &Options::default().subdir(&self.cache_subdir),
-        )?;
+        let cached_path = CACHE
+            .cached_path_with_options(&self.url, &Options::default().subdir(&self.cache_subdir))?;
         Ok(cached_path)
     }
 
@@ -112,7 +110,7 @@ impl ResourceProvider for RemoteResource {
     /// let config_resource = RemoteResource::new("http://config_json_location", "configs");
     /// let config_path = config_resource.get_resource();
     /// ```
-    fn get_resource(&self) -> Result<Resource, RustBertError> {
+    fn get_resource(&self) -> Result<Resource<'_>, RustBertError> {
         Ok(Resource::PathBuf(self.get_local_path()?))
     }
 }
